@@ -134,23 +134,6 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-	if (HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin) == GPIO_PIN_SET) {
-	HAL_Delay(100);
-    if (HAL_GPIO_ReadPin(Button_GPIO_Port, Button_Pin) == GPIO_PIN_SET) {
-
-    ++MessageCounter;
-    MessageLength = sprintf(DataToSend, "Wiadomosc nr %d\n\r", MessageCounter);
-    CDC_Transmit_FS(DataToSend, MessageLength);
-    }
-	}
-
-	if(ReceivedDataFlag == 1){
-	ReceivedDataFlag = 0;
-
-    MessageLength = sprintf(DataToSend, "Odebrano: %s\n\r", ReceivedData);
-	CDC_Transmit_FS(DataToSend, MessageLength);
-	}
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
