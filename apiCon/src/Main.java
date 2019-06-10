@@ -1,21 +1,18 @@
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import com.fazecast.jSerialComm.SerialPort;
+import javax.swing.*;
 
+import com.fazecast.jSerialComm.SerialPort;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import org.json.*;
+import java.util.Timer;
 public class Main {
 
     static SerialPort chosenPort;
@@ -24,8 +21,8 @@ public class Main {
 
         // create and configure the window
         JFrame window = new JFrame();
-        window.setTitle("LCD Clock");
-        window.setSize(400, 75);
+        window.setTitle("Gitter");
+        window.setSize(200, 110);
         window.setLayout(new BorderLayout());
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -33,43 +30,17 @@ public class Main {
         JComboBox<String> portList = new JComboBox<String>();
         JButton connectButton = new JButton("Connect");
         JPanel topPanel = new JPanel();
-        topPanel.add(portList);
-        topPanel.add(connectButton);
+        JTextArea txtField = new JTextArea("e.g. PUT-PTM");
+        topPanel.setLayout(new BorderLayout());
+        topPanel.add(portList, BorderLayout.NORTH);
+        topPanel.add(txtField, BorderLayout.CENTER);
+        topPanel.add(connectButton, BorderLayout.SOUTH);
         window.add(topPanel, BorderLayout.NORTH);
 
         //get name from api
-        String url = "https://api.github.com/users/PUT-PTM/events";
-        URL adr = new URL(url);
-        HttpURLConnection connect = (HttpURLConnection) adr.openConnection();
-        connect.addRequestProperty("User-Agent", "Mozilla/5.0");
-        BufferedReader in = new BufferedReader(new InputStreamReader(connect.getInputStream()));
 
 
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ( ( line = in.readLine() ) != null)
-        {
-            response.append("\n" + line);
-            //System.out.println(line);
-        }
-        in.close();
 
-
-        String [] temp = response.toString().split("\"type\":\"PushEvent\"");
-
-        String temp2[] = temp[1].split("\"repo\":");
-
-        String temp3[] = temp2[1].split("\"url\":");
-
-        String temp4[] = temp3[1].split("\"");
-
-        String URLout = temp4[1];
-        //System.out.println(URLout);
-
-        String name[] = URLout.split("PUT-PTM/");
-        System.out.println(name[1]);
-
-        String name1 = name[1];
 
 
         // populate the drop-down box
@@ -83,27 +54,97 @@ public class Main {
                 if(connectButton.getText().equals("Connect")) {
                     // attempt to connect to the serial port
                     chosenPort = SerialPort.getCommPort(portList.getSelectedItem().toString());
-                    chosenPort.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0);
+                   chosenPort.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0);
                     if(chosenPort.openPort()) {
                         connectButton.setText("Disconnect");
                         portList.setEnabled(false);
 
 
-                        // create a new thread for sending data to the arduino
+                        // create a new thread for sending data to the STM
                         Thread thread = new Thread(){
                             @Override public void run() {
                                 // wait after connecting, so the bootloader can finish
-                                try {Thread.sleep(1000); } catch(Exception e) {}
-                                // enter an infinite loop that sends text to the arduino
-                                PrintWriter output = new PrintWriter(chosenPort.getOutputStream());
-                                while(true) {
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (Exception e) {
+                                }
+                                while (true) {
+                                    String url = "";
+                                    if(txtField.getText() != null)
+                                    {
+                                        url = "https://api.github.com/users/" + txtField.getText() + "/events";
+                                        //url = "https://api.github.com/users/PUT-PTM/events";
+                                    }
+
+                                    URL adr = null;
+                                    try {
+                                        adr = new URL(url);
+                                    } catch (MalformedURLException e) {
+                                        e.printStackTrace();
+                                    }
+                                    HttpURLConnection connect = null;
+                                    try {
+                                        connect = (HttpURLConnection) adr.openConnection();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                    connect.addRequestProperty("User-Agent", "Mozilla/5.0");
+                                    BufferedReader in = null;
+                                    try {
+                                        in = new BufferedReader(new InputStreamReader(connect.getInputStream()));
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+
+                                    StringBuffer response = new StringBuffer();
+                                    String line = "";
+                                    while (true) {
+                                        try {
+                                            if (!((line = in.readLine()) != null)) break;
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                        response.append("\n" + line);
+                                        //System.out.println(line);
+                                    }
+                                    try {
+                                        in.close();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+
+                                    JSONArray arr = new JSONArray(response.toString());
+                                    JSONObject repo = arr.getJSONObject(0);
+                                    repo.getJSONObject("repo").getString("name");
+                                    System.out.println(repo.getString("created_at"));
+                                    String name[] = repo.getJSONObject("repo").getString("name").split("/");
+                                    String name1 = name[1];
+                                    if(name1.length() < 16)
+                                    {
+                                        for(int i = 0; i < (16 - name1.length()); i++)
+                                        {
+                                            name1 = name1 + " ";
+                                        }
+                                    }
+                                    String msg = name1 + repo.getString("created_at");
+                                    System.out.println(name[1]);
+                                    // enter an infinite loop that sends text to the stm
+
+                                    PrintWriter output = new PrintWriter(chosenPort.getOutputStream());
                                     output.print(name1);
                                     output.flush();
-                                    try {Thread.sleep(100); } catch(Exception e) {}
+
+                                    try {
+                                        Thread.sleep(60*3 * 1000);
+                                    } catch (Exception e) {
+                                    }
+
                                 }
                             }
                         };
-                        thread.start();
+                            thread.start();
                     }
                 } else {
                     // disconnect from the serial port

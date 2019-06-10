@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="apiCon:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/apiCon_jar</output-path>
+    <root id="archive" name="apiCon.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/src/main/resources/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="apiCon" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/json-20180813.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Desktop/moje studia 2k17-18/semestr4/java serialcomm/jSerialComm-2.5.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
